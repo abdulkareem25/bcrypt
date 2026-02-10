@@ -10,21 +10,20 @@ authRouter.post('/sign-up', async (req, res) => {
 
     const isExists = await userModel.findOne({ email });
 
-    if(isExists) {
+    if (isExists) {
         return res.status(400).json({
             message: "User already exists."
         });
     };
 
     const user = await userModel.create({
-        name, 
+        name,
         email,
         password
     });
 
     const payload = {
-        id: user._id,
-        email: user.email
+        id: user._id
     };
 
     const token = jwt.sign(
@@ -36,6 +35,35 @@ authRouter.post('/sign-up', async (req, res) => {
 
     res.status(201).json({
         message: "User registered successfully.",
+        user,
+        token
+    });
+});
+
+authRouter.post('/sign-in', async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email });
+
+    if (!user || user.password !== password) {
+        return res.status(401).json({
+            message: "Invalid Credentials."
+        });
+    };
+
+    const payload = {
+        id: user._id
+    }
+
+    const token = jwt.sign(
+        payload,
+        process.env.JWT_SECRET
+    );
+
+    res.cookie('jwt_token', token);
+
+    res.status(200).json({
+        message: "User logged in Successfully.",
         user,
         token
     });
