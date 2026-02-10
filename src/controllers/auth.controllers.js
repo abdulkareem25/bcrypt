@@ -1,5 +1,6 @@
 const userModel = require('../models/user.model');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 
 const signUpController = async (req, res) => {
@@ -8,15 +9,18 @@ const signUpController = async (req, res) => {
     const isExists = await userModel.findOne({ email });
 
     if (isExists) {
-        return res.status(400).json({
+        return res.status(409).json({
             message: "User already exists."
         });
     };
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const user = await userModel.create({
         name,
         email,
-        password
+        password: hashedPassword
     });
 
     const payload = {
@@ -42,7 +46,9 @@ const signInController = async (req, res) => {
 
     const user = await userModel.findOne({ email });
 
-    if (!user || user.password !== password) {
+    const isValid = await bcrypt.compare(password, user.password);
+    
+    if (!user || !isValid) {
         return res.status(401).json({
             message: "Invalid Credentials."
         });
